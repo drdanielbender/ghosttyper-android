@@ -39,6 +39,9 @@ import org.futo.inputmethod.latin.uix.PersistentActionState
 import org.futo.inputmethod.latin.uix.ResourceHelper
 import org.futo.inputmethod.latin.uix.USE_PERSONAL_DICT
 import org.futo.inputmethod.latin.uix.USE_VAD_AUTOSTOP
+import org.futo.inputmethod.latin.uix.USE_REMOTE_WHISPER
+import org.futo.inputmethod.latin.uix.REMOTE_WHISPER_URL
+import org.futo.inputmethod.latin.uix.REMOTE_WHISPER_MODEL
 import org.futo.inputmethod.latin.uix.VERBOSE_PROGRESS
 import org.futo.inputmethod.latin.uix.getSetting
 import org.futo.inputmethod.latin.uix.setSetting
@@ -46,6 +49,7 @@ import org.futo.inputmethod.latin.uix.settings.SettingsActivity
 import org.futo.inputmethod.latin.uix.utils.ModelOutputSanitizer
 import org.futo.inputmethod.latin.xlm.UserDictionaryObserver
 import org.futo.inputmethod.updates.openURI
+import org.futo.voiceinput.shared.BUILTIN_ENGLISH_MODEL
 import org.futo.voiceinput.shared.ModelDoesNotExistException
 import org.futo.voiceinput.shared.RecognizerView
 import org.futo.voiceinput.shared.RecognizerViewListener
@@ -139,6 +143,10 @@ private class VoiceInputActionWindow(
             emptyList()
         }
 
+        val useRemoteWhisper = context.getSetting(USE_REMOTE_WHISPER)
+        val remoteWhisperUrl = context.getSetting(REMOTE_WHISPER_URL)
+        val remoteWhisperModel = context.getSetting(REMOTE_WHISPER_MODEL)
+
         shouldPlaySounds = enableSound
 
         return RecognizerViewSettings(
@@ -159,7 +167,10 @@ private class VoiceInputActionWindow(
                 requestAudioFocus = requestAudioFocus,
                 canExpandSpace = canExpandSpace,
                 useVADAutoStop = useVAD
-            )
+            ),
+            useRemoteWhisper = useRemoteWhisper,
+            remoteWhisperUrl = remoteWhisperUrl,
+            remoteWhisperModel = remoteWhisperModel
         )
     }
 
@@ -315,14 +326,19 @@ val VoiceInputAction = Action(icon = R.drawable.mic_fill,
     windowImpl = { manager, persistentState ->
         val locales = manager.getActiveLocales()
 
-        val model = ResourceHelper.tryFindingVoiceInputModelForLocale(manager.getContext(), locales.firstOrNull() ?: Locale.ROOT)
+        val useRemote = manager.getContext().getSetting(USE_REMOTE_WHISPER)
+        val model = if (useRemote) {
+            BUILTIN_ENGLISH_MODEL
+        } else {
+            ResourceHelper.tryFindingVoiceInputModelForLocale(manager.getContext(), locales.firstOrNull() ?: Locale.ROOT)
+        }
 
-        if(model == null) {
+        if(model == null && !useRemote) {
             VoiceInputNoModelWindow(locales.firstOrNull() ?: Locale.ROOT)
         } else {
             VoiceInputActionWindow(
                 manager = manager, state = persistentState as VoiceInputPersistentState,
-                locales = locales, model = model
+                locales = locales, model = model ?: BUILTIN_ENGLISH_MODEL
             )
         }
     }

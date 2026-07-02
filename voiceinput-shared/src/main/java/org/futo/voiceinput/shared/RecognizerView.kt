@@ -38,7 +38,11 @@ data class RecognizerViewSettings(
 
     val modelRunConfiguration: MultiModelRunConfiguration,
     val decodingConfiguration: DecodingConfiguration,
-    val recordingConfiguration: RecordingSettings
+    val recordingConfiguration: RecordingSettings,
+
+    val useRemoteWhisper: Boolean = false,
+    val remoteWhisperUrl: String = "",
+    val remoteWhisperModel: String = ""
 )
 
 private val VerboseAnnotations = hashMapOf(
@@ -91,6 +95,7 @@ class RecognizerView(
     private val loadingCircleText = mutableStateOf("")
     private val partialDecodingText = mutableStateOf("")
     private val currentViewState = mutableStateOf(CurrentView.LoadingCircle)
+    private val remoteErrorMessage = mutableStateOf("")
 
     private val currentDeviceState = mutableStateOf(MicrophoneDeviceState(
         bluetoothAvailable = false,
@@ -142,7 +147,11 @@ class RecognizerView(
                         indication = null,
                         interactionSource = remember { MutableInteractionSource() })) {
                     Text(
-                        stringResource(R.string.model_load_error),
+                        text = if (settings.useRemoteWhisper && remoteErrorMessage.value.isNotEmpty()) {
+                            "Remote STT error:\n${remoteErrorMessage.value}"
+                        } else {
+                            stringResource(R.string.model_load_error)
+                        },
                         modifier = Modifier
                             .align(Alignment.Center)
                             .padding(8.dp), textAlign = TextAlign.Center)
@@ -172,8 +181,9 @@ class RecognizerView(
             // TODO
         }
 
-        override fun modelLoadingFailed() {
+        override fun modelLoadingFailed(error: String?) {
             listener.cancelled()
+            remoteErrorMessage.value = error ?: ""
             currentViewState.value = CurrentView.ModelError
         }
 
@@ -245,7 +255,10 @@ class RecognizerView(
         settings = AudioRecognizerSettings(
             modelRunConfiguration = settings.modelRunConfiguration,
             decodingConfiguration = settings.decodingConfiguration,
-            recordingConfiguration = settings.recordingConfiguration
+            recordingConfiguration = settings.recordingConfiguration,
+            useRemoteWhisper = settings.useRemoteWhisper,
+            remoteWhisperUrl = settings.remoteWhisperUrl,
+            remoteWhisperModel = settings.remoteWhisperModel
         )
     )
 

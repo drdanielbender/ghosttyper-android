@@ -2,6 +2,7 @@ plugins {
     id 'com.android.library' version '8.10.1'
     id 'org.jetbrains.kotlin.android' version '2.1.0'
     id 'org.jetbrains.kotlin.plugin.compose' version '2.1.0'
+    id 'org.jetbrains.kotlin.plugin.serialization' version '2.1.0'
 }
 
 final def translationsWithoutEngValues = { final String path ->
@@ -96,5 +97,6 @@ dependencies {
 
     implementation(name:'vad-release', ext:'aar')
 
+    implementation 'com.squareup.okhttp3:okhttp:4.12.0'
     implementation 'org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.1'
 }
