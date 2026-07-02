@@ -2,7 +2,9 @@ package org.futo.inputmethod.latin.uix
 
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
+
 
 val ENABLE_SOUND = SettingsKey(
     key = booleanPreferencesKey("enable_sounds"),
@@ -72,4 +74,19 @@ val USE_PERSONAL_DICT = SettingsKey(
 val ANIMATE_BUBBLE = SettingsKey(
     key = booleanPreferencesKey("animate_bubble"),
     default = true
+)
+
+val USE_REMOTE_WHISPER = SettingsKey(
+    key = booleanPreferencesKey("use_remote_whisper"),
+    default = false
+)
+
+val REMOTE_WHISPER_URL = SettingsKey(
+    key = stringPreferencesKey("remote_whisper_url"),
+    default = ""
+)
+
+val REMOTE_WHISPER_MODEL = SettingsKey(
+    key = stringPreferencesKey("remote_whisper_model"),
+    default = "Whisper-Base"
 )

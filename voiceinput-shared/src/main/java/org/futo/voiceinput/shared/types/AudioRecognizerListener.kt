@@ -12,7 +12,7 @@ interface AudioRecognizerListener {
     fun languageDetected(language: Language)
     fun partialResult(result: String)
     fun decodingStatus(status: InferenceState)
-    fun modelLoadingFailed()
+    fun modelLoadingFailed(error: String? = null)
 
     fun loading()
     fun needPermission(onResult: (Boolean) -> Unit)

@@ -42,6 +42,9 @@ import org.futo.voiceinput.shared.whisper.DecodingConfiguration
 import org.futo.voiceinput.shared.whisper.ModelManager
 import org.futo.voiceinput.shared.whisper.MultiModelRunConfiguration
 import org.futo.voiceinput.shared.whisper.MultiModelRunner
+import org.futo.voiceinput.shared.whisper.WavEncoder
+import org.futo.voiceinput.shared.whisper.RemoteWhisperClient
+import org.futo.voiceinput.shared.types.toWhisperString
 import org.futo.voiceinput.shared.whisper.isBlankResult
 import java.nio.FloatBuffer
 import java.nio.ShortBuffer
@@ -87,7 +90,10 @@ data class RecordingSettings(
 data class AudioRecognizerSettings(
     val modelRunConfiguration: MultiModelRunConfiguration,
     val decodingConfiguration: DecodingConfiguration,
-    val recordingConfiguration: RecordingSettings
+    val recordingConfiguration: RecordingSettings,
+    val useRemoteWhisper: Boolean = false,
+    val remoteWhisperUrl: String = "",
+    val remoteWhisperModel: String = ""
 )
 
 class ModelDoesNotExistException(val models: List<ModelLoader>) : Throwable()
@@ -194,6 +200,7 @@ class AudioRecognizer(
 
     @Throws(ModelDoesNotExistException::class)
     private fun verifyModelsExist() {
+        if (settings.useRemoteWhisper) return
         val modelsThatDoNotExist = mutableListOf<ModelLoader>()
 
         if (!settings.modelRunConfiguration.primaryModel.exists(context)) {
@@ -514,7 +521,9 @@ class AudioRecognizer(
         loadModelJob = lifecycleScope.launch {
             withContext(Dispatchers.Default) {
                 try {
-                    preloadModels()
+                    if (!settings.useRemoteWhisper) {
+                        preloadModels()
+                    }
                 } catch(_: InvalidModelException) {
                     withContext(Dispatchers.Main) {
                         reset()
@@ -552,14 +561,35 @@ class AudioRecognizer(
 
         yield()
         val outputText = try {
-             modelRunner.run(
-                floatArray,
-                settings.modelRunConfiguration,
-                settings.decodingConfiguration,
-                runnerCallback
-            ).trim()
-        }catch(e: InferenceCancelledException) {
+            if (settings.useRemoteWhisper) {
+                runnerCallback.updateStatus(InferenceState.Encoding)
+                val wavBytes = WavEncoder.floatArrayToWavBytes(floatArray)
+                val language = settings.decodingConfiguration.languages.firstOrNull()?.toWhisperString()
+                withContext(Dispatchers.IO) {
+                    RemoteWhisperClient.transcribe(
+                        wavBytes = wavBytes,
+                        serverUrl = settings.remoteWhisperUrl,
+                        modelId = settings.remoteWhisperModel,
+                        language = language
+                    )
+                }
+            } else {
+                modelRunner.run(
+                    floatArray,
+                    settings.modelRunConfiguration,
+                    settings.decodingConfiguration,
+                    runnerCallback
+                ).trim()
+            }
+        } catch(e: InferenceCancelledException) {
             yield()
+            return
+        } catch(e: Exception) {
+            e.printStackTrace()
+            val errMsg = e.localizedMessage ?: e.message ?: "Unknown error"
+            withContext(Dispatchers.Main) {
+                listener.modelLoadingFailed(errMsg)
+            }
             return
         }
 

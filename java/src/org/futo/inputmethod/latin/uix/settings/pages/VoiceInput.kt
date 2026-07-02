@@ -90,6 +90,13 @@ val VoiceInputMenu = UserSettingsMenu(
         ).copy(visibilityCheck = visibilityCheckNotSystemVoiceInput),
 
         userSettingNavigationItem(
+            title = R.string.voice_input_settings_remote_whisper_title,
+            subtitle = R.string.voice_input_settings_remote_whisper_subtitle,
+            style = NavigationItemStyle.Misc,
+            navigateTo = "remoteWhisper"
+        ).copy(visibilityCheck = visibilityCheckNotSystemVoiceInput),
+
+        userSettingNavigationItem(
             title = R.string.voice_input_settings_change_models,
             subtitle = R.string.voice_input_settings_change_models_subtitle,
             style = NavigationItemStyle.Misc,
