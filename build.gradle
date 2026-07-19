@@ -168,8 +168,8 @@ android {
         versionName getVersionName()
         versionCode getVersionCode()
 
-        applicationId 'org.futo.inputmethod.latin'
-        testApplicationId 'org.futo.inputmethod.latin.tests'
+        applicationId 'com.cloudlesscomputer.ghosttyper'
+        testApplicationId 'com.cloudlesscomputer.ghosttyper.tests'
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = false
     }
@@ -358,6 +358,12 @@ android {
         viewBinding true
         mlModelBinding true
         buildConfig true
+    }
+
+    applicationVariants.configureEach { variant ->
+        variant.outputs.configureEach {
+            outputFileName = 'ghosttyper.apk'
+        }
     }
 
     packagingOptions {
