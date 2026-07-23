@@ -160,6 +160,46 @@ public class InputPointersTests {
     }
 
     @Test
+    public void testCopyGestureSegmentsDoesNotShareMutableData() {
+        final InputPointers src = new InputPointers(DEFAULT_CAPACITY);
+        final ResizableIntArray times = new ResizableIntArray(DEFAULT_CAPACITY);
+        final ResizableIntArray xCoordinates = new ResizableIntArray(DEFAULT_CAPACITY);
+        final ResizableIntArray yCoordinates = new ResizableIntArray(DEFAULT_CAPACITY);
+        times.add(10);
+        times.add(20);
+        xCoordinates.add(100);
+        xCoordinates.add(200);
+        yCoordinates.add(300);
+        yCoordinates.add(400);
+
+        src.onPointerDown(0);
+        src.append(0, times, xCoordinates, yCoordinates, 0, 2);
+
+        final InputPointers dst = new InputPointers(DEFAULT_CAPACITY);
+        dst.copy(src);
+
+        assertEquals("copied gesture segment count", 1, dst.getGestureSegments().size());
+        final InputPointers.GestureSegment srcSegment = src.getGestureSegments().get(0);
+        final InputPointers.GestureSegment dstSegment = dst.getGestureSegments().get(0);
+        assertNotSame("gesture segment after copy", srcSegment, dstSegment);
+        assertNotSame("gesture x coordinates after copy",
+                srcSegment.x.getPrimitiveArray(), dstSegment.x.getPrimitiveArray());
+        assertNotSame("gesture y coordinates after copy",
+                srcSegment.y.getPrimitiveArray(), dstSegment.y.getPrimitiveArray());
+        assertNotSame("gesture times after copy",
+                srcSegment.t.getPrimitiveArray(), dstSegment.t.getPrimitiveArray());
+
+        src.resetForBatch();
+
+        assertEquals("copied gesture segment survives source reset",
+                1, dst.getGestureSegments().size());
+        assertEquals("copied gesture point count", 2, dstSegment.x.getLength());
+        assertEquals("copied gesture x value", 200, dstSegment.x.get(1));
+        assertEquals("copied gesture y value", 400, dstSegment.y.get(1));
+        assertEquals("copied gesture time value", 20, dstSegment.t.get(1));
+    }
+
+    @Test
     public void testAppend() {
         final int dstLength = 50;
         final InputPointers dst = new InputPointers(DEFAULT_CAPACITY);

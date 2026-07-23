@@ -373,6 +373,33 @@ android {
     }
 }
 
+def swipeModelAssets = [
+        'java/assets/futo-swipe/honorable_sturgeon/model_fp32.pte': 2649856L,
+        'java/assets/futo-swipe/hungry_jellyfish/context_lm.pte' : 6247616L,
+        'java/assets/futo-swipe/magic_macaw/model_fp32.pte'       : 1247468L,
+]
+
+def verifySwipeModelAssets = tasks.register('verifySwipeModelAssets') {
+    inputs.files(swipeModelAssets.keySet().collect { file(it) })
+    doLast {
+        swipeModelAssets.each { path, expectedSize ->
+            def model = file(path)
+            if (!model.isFile() || model.length() != expectedSize) {
+                throw new GradleException(
+                        "Swipe model '$path' is missing or is a Git LFS pointer " +
+                                "(expected $expectedSize bytes, found " +
+                                "${model.isFile() ? model.length() : 'no file'}). " +
+                                "Fetch Git LFS assets before building."
+                )
+            }
+        }
+    }
+}
+
+tasks.named('preBuild').configure {
+    dependsOn verifySwipeModelAssets
+}
+
 dependencies {
     implementation 'androidx.core:core-ktx:1.13.1'
     implementation 'androidx.lifecycle:lifecycle-runtime-ktx:2.8.4'

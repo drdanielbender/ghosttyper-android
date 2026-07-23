@@ -107,15 +107,27 @@ public final class InputPointers {
     }
 
     public void copy(@Nonnull final InputPointers ip) {
+        if (ip == this) {
+            return;
+        }
         if(DEBUG_TRACE) Log.d(TAG, "copy " + System.identityHashCode(this) + " ip=" + System.identityHashCode(ip));
-        mXCoordinates.copy(ip.mXCoordinates);
-        mYCoordinates.copy(ip.mYCoordinates);
-        mPointerIds.copy(ip.mPointerIds);
-        mTimes.copy(ip.mTimes);
+        synchronized (ip) {
+            mXCoordinates.copy(ip.mXCoordinates);
+            mYCoordinates.copy(ip.mYCoordinates);
+            mPointerIds.copy(ip.mPointerIds);
+            mTimes.copy(ip.mTimes);
 
-        mGestureSegments.clear();
-        mGestureSegments.addAll(ip.getGestureSegments());
-        mActivePointerSegments.clear();
+            mGestureSegments.clear();
+            for (final GestureSegment sourceSegment : ip.mGestureSegments) {
+                final GestureSegment copiedSegment =
+                        new GestureSegment(sourceSegment.pointerId);
+                copiedSegment.x.copy(sourceSegment.x);
+                copiedSegment.y.copy(sourceSegment.y);
+                copiedSegment.t.copy(sourceSegment.t);
+                mGestureSegments.add(copiedSegment);
+            }
+            mActivePointerSegments.clear();
+        }
     }
 
     /**

@@ -102,7 +102,13 @@ public final class WordComposer {
     }
 
     public ComposedData getComposedDataSnapshot() {
-        return new ComposedData(getInputPointers(), isBatchMode(), mTypedWordCache.toString());
+        final InputPointers inputPointersSnapshot =
+                new InputPointers(MAX_WORD_LENGTH);
+        synchronized (mInputPointers) {
+            inputPointersSnapshot.copy(mInputPointers);
+        }
+        return new ComposedData(
+                inputPointersSnapshot, isBatchMode(), mTypedWordCache.toString());
     }
 
     /**
@@ -214,7 +220,9 @@ public final class WordComposer {
                 // (See {@link #setBatchInputWord}).
                 if (!mIsBatchMode) {
                     // TODO: Set correct pointer id and time
-                    mInputPointers.addPointerAt(newIndex, keyX, keyY, 0, 0);
+                    synchronized (mInputPointers) {
+                        mInputPointers.addPointerAt(newIndex, keyX, keyY, 0, 0);
+                    }
                 }
             }
             if (0 == newIndex) {
@@ -292,7 +300,9 @@ public final class WordComposer {
     }
 
     public void setBatchInputPointers(final InputPointers batchPointers) {
-        mInputPointers.set(batchPointers);
+        synchronized (mInputPointers) {
+            mInputPointers.copy(batchPointers);
+        }
         mIsBatchMode = true;
     }
 
@@ -494,7 +504,9 @@ public final class WordComposer {
         final LastComposedWord lastComposedWord = new LastComposedWord(mEvents,
                 mInputPointers, mTypedWordCache.toString(), committedWord, separatorString,
                 ngramContext, mCapitalizedMode);
-        mInputPointers.reset();
+        synchronized (mInputPointers) {
+            mInputPointers.reset();
+        }
         if (type != LastComposedWord.COMMIT_TYPE_DECIDED_WORD
                 && type != LastComposedWord.COMMIT_TYPE_MANUAL_PICK) {
             lastComposedWord.deactivate();
@@ -518,7 +530,9 @@ public final class WordComposer {
     public void resumeSuggestionOnLastComposedWord(final LastComposedWord lastComposedWord) {
         mEvents.clear();
         Collections.copy(mEvents, lastComposedWord.mEvents);
-        mInputPointers.set(lastComposedWord.mInputPointers);
+        synchronized (mInputPointers) {
+            mInputPointers.copy(lastComposedWord.mInputPointers);
+        }
         mCombinerChain.reset();
         refreshTypedWordCache();
         mCapitalizedMode = lastComposedWord.mCapitalizedMode;
@@ -542,7 +556,9 @@ public final class WordComposer {
 
     @UsedForTesting
     void addInputPointerForTest(int index, int keyX, int keyY) {
-        mInputPointers.addPointerAt(index, keyX, keyY, 0, 0);
+        synchronized (mInputPointers) {
+            mInputPointers.addPointerAt(index, keyX, keyY, 0, 0);
+        }
     }
 
     @UsedForTesting

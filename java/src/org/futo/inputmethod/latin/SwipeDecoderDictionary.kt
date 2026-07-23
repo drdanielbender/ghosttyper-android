@@ -446,7 +446,16 @@ class SwipeDecoderDictionary(val context: Context, val locale: Locale) : Diction
             ?.takeLast(10)
             ?: emptyList()
 
-        val decoder = getOrInitDecoder()
+        val decoder = try {
+            getOrInitDecoder()
+        } catch (exception: IllegalArgumentException) {
+            Log.e(
+                "SwipeDecoderDictionary",
+                "Could not initialize the swipe model; falling back to legacy gesture decoding",
+                exception
+            )
+            return null
+        }
         decoder.setContext(wordsContext)
         appliedTrieWeights = trieWeights
 

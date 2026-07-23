@@ -83,12 +83,12 @@ class CrashLoggingApplication : Application() /*, Configuration.Provider*/ {
                 //    }
                 //} else {
                 mailSender {
-                    mailTo = "keyboard@futo.org"
-                    reportAsFile = true
-                    reportFileName = "Crash.txt"
-                    subject = "Keyboard Crash Report"
+                    mailTo = "ghosttyper@cloudlesscomputer.com"
+                    reportAsFile = false
+                    subject = "GhostTyper Crash Report"
                     body =
-                        "I experienced this crash. My version: ${BuildConfig.VERSION_NAME}.\n\n(Enter details here if necessary)"
+                        "I experienced this crash. My version: ${BuildConfig.VERSION_NAME}.\n\n" +
+                            "(Enter details here if necessary)\n\nCrash report:"
                 }
                 //}
             }
