@@ -35,7 +35,6 @@ import org.futo.inputmethod.latin.uix.theme.AdvancedThemeMatcher
 import org.futo.inputmethod.latin.uix.theme.KeyBackground
 import org.futo.inputmethod.v2keyboard.Direction
 import org.futo.inputmethod.v2keyboard.KeyVisualStyle
-import org.futo.inputmethod.latin.uix.getSettingBlocking
 
 val KeyBordersSetting = SettingsKey(booleanPreferencesKey("keyBorders"), true)
 val HiddenKeysSetting = SettingsKey(booleanPreferencesKey("hiddenKeys1"), false)

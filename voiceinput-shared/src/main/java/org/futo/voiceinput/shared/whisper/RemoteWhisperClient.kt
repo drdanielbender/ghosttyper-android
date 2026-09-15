@@ -71,7 +71,7 @@ object RemoteWhisperClient {
             }
             val jsonString = response.body?.string() ?: throw Exception("Empty response body")
             val parsed = json.decodeFromString<TranscriptionResponse>(jsonString)
-            
+
             // Collapse all whitespace sequences into a single space
             return parsed.text.replace(Regex("\\s+"), " ").trim()
         }
