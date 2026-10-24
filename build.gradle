@@ -367,6 +367,10 @@ android {
         checkReleaseBuilds false
     }
 
+    testOptions {
+        unitTests.includeAndroidResources = true
+    }
+
     aaptOptions {
         noCompress 'dict'
     }
@@ -463,6 +467,8 @@ dependencies {
     debugImplementation 'androidx.compose.ui:ui-test-manifest'
 
     testImplementation 'junit:junit:4.13.2'
+    testImplementation 'org.robolectric:robolectric:4.14.1'
+    testImplementation 'androidx.compose.ui:ui-test-junit4'
     androidTestImplementation "org.mockito:mockito-core:1.9.5"
     androidTestImplementation 'com.google.dexmaker:dexmaker:1.2'
     androidTestImplementation 'com.google.dexmaker:dexmaker-mockito:1.2'

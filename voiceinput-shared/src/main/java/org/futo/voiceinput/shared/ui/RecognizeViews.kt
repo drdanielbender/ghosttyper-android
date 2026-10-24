@@ -54,8 +54,10 @@ import androidx.compose.ui.semantics.toggleableState
 import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
+import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import org.futo.voiceinput.shared.R
 import org.futo.voiceinput.shared.types.MagnitudeState
 import org.futo.voiceinput.shared.ui.theme.Typography
@@ -67,6 +69,35 @@ data class MicrophoneDeviceState(
     val setBluetooth: (Boolean) -> Unit,
     val deviceName: String
 )
+
+@Composable
+fun RemoteTranscriptionHint(serverUrl: String, modelId: String) {
+    val endpoint = remember(serverUrl) {
+        serverUrl.trim().toHttpUrlOrNull()?.newBuilder()
+            ?.username("")?.password("")?.query(null)?.fragment(null)
+            ?.build()?.toString()
+    }
+    val notConfigured = stringResource(R.string.remote_transcription_not_configured)
+    Column(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            text = endpoint ?: notConfigured,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
+        Text(
+            text = modelId.trim().ifEmpty { notConfigured },
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
+    }
+}
 
 @Composable
 fun AnimatedRecognizeCircle(magnitude: MutableFloatState = mutableFloatStateOf(0.5f)) {

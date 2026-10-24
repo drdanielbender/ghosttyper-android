@@ -2,13 +2,13 @@ package org.futo.inputmethod.latin.uix.settings.pages
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
@@ -25,17 +25,19 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import android.widget.Toast
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.futo.inputmethod.latin.R
 import org.futo.inputmethod.latin.uix.REMOTE_WHISPER_MODEL
 import org.futo.inputmethod.latin.uix.REMOTE_WHISPER_URL
-import org.futo.inputmethod.latin.uix.SettingsKey
+import org.futo.inputmethod.latin.uix.REMOTE_WHISPER_API_KEY
 import org.futo.inputmethod.latin.uix.USE_REMOTE_WHISPER
-import org.futo.inputmethod.latin.uix.getSettingBlocking
 import org.futo.inputmethod.latin.uix.settings.UserSetting
 import org.futo.inputmethod.latin.uix.settings.UserSettingsMenu
 import org.futo.inputmethod.latin.uix.settings.useDataStore
@@ -50,22 +52,16 @@ fun RemoteWhisperConfigPage() {
 
     val urlSetting = useDataStore(REMOTE_WHISPER_URL.key, REMOTE_WHISPER_URL.default)
     val modelSetting = useDataStore(REMOTE_WHISPER_MODEL.key, REMOTE_WHISPER_MODEL.default)
+    val apiKeySetting = useDataStore(REMOTE_WHISPER_API_KEY.key, REMOTE_WHISPER_API_KEY.default)
 
-    val urlState = remember { mutableStateOf(context.getSettingBlocking(REMOTE_WHISPER_URL.key, REMOTE_WHISPER_URL.default)) }
-    val modelState = remember { mutableStateOf(context.getSettingBlocking(REMOTE_WHISPER_MODEL.key, REMOTE_WHISPER_MODEL.default)) }
+    val urlState = remember { mutableStateOf(urlSetting.value) }
+    val modelState = remember { mutableStateOf(modelSetting.value) }
+    val apiKeyState = remember { mutableStateOf(apiKeySetting.value) }
 
     val modelsList = remember { mutableStateOf(emptyList<String>()) }
     val isLoading = remember { mutableStateOf(false) }
     val connectionStatus = remember { mutableStateOf("") }
     val dropdownExpanded = remember { mutableStateOf(false) }
-
-    LaunchedEffect(urlState.value) {
-        urlSetting.setValue(urlState.value)
-    }
-
-    LaunchedEffect(modelState.value) {
-        modelSetting.setValue(modelState.value)
-    }
 
     LaunchedEffect(Unit) {
         val serverUrl = urlState.value.trim()
@@ -74,28 +70,17 @@ fun RemoteWhisperConfigPage() {
         isLoading.value = true
         connectionStatus.value = ""
         try {
-            val path = "/v1/models"
-            val fullUrl = if (serverUrl.contains("/v1/")) {
-                if (serverUrl.endsWith("/v1")) {
-                    "$serverUrl/models"
-                } else if (serverUrl.contains("/v1/models")) {
-                    serverUrl
-                } else {
-                    val base = serverUrl.substringBefore("/v1/")
-                    "${base.trimEnd('/')}$path"
-                }
-            } else {
-                "${serverUrl.trimEnd('/')}$path"
-            }
-
             val models = withContext(Dispatchers.IO) {
-                RemoteWhisperClient.fetchModels(fullUrl)
+                RemoteWhisperClient.fetchModels(serverUrl, apiKeyState.value)
             }
             modelsList.value = models
             if (models.isNotEmpty() && !models.contains(modelState.value)) {
                 modelState.value = models.first()
+                modelSetting.setValue(modelState.value)
             }
             connectionStatus.value = "Connected! Found ${models.size} models."
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             e.printStackTrace()
             modelsList.value = emptyList()
@@ -114,8 +99,30 @@ fun RemoteWhisperConfigPage() {
                 Column(modifier = Modifier.fillMaxWidth().padding(top = 4.dp)) {
                     TextField(
                         value = urlState.value,
-                        onValueChange = { urlState.value = it },
+                        onValueChange = {
+                            urlState.value = it
+                            urlSetting.setValue(it)
+                        },
                         placeholder = { Text("http://server:port") },
+                        supportingText = { Text(stringResource(R.string.voice_input_settings_remote_whisper_url_hint)) },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    TextField(
+                        value = apiKeyState.value,
+                        onValueChange = {
+                            apiKeyState.value = it
+                            apiKeySetting.setValue(it)
+                        },
+                        label = { Text(stringResource(R.string.voice_input_settings_remote_whisper_api_key)) },
+                        supportingText = { Text(stringResource(R.string.voice_input_settings_remote_whisper_api_key_hint)) },
+                        visualTransformation = PasswordVisualTransformation(),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                        singleLine = true,
                         modifier = Modifier.fillMaxWidth()
                     )
 
@@ -140,30 +147,18 @@ fun RemoteWhisperConfigPage() {
                             connectionStatus.value = ""
                             coroutineScope.launch {
                                 try {
-                                    val path = "/v1/models"
-                                    val serverUrl = urlState.value.trim()
-                                    val fullUrl = if (serverUrl.contains("/v1/")) {
-                                        if (serverUrl.endsWith("/v1")) {
-                                            "$serverUrl/models"
-                                        } else if (serverUrl.contains("/v1/models")) {
-                                            serverUrl
-                                        } else {
-                                            val base = serverUrl.substringBefore("/v1/")
-                                            "${base.trimEnd('/')}$path"
-                                        }
-                                    } else {
-                                        "${serverUrl.trimEnd('/')}$path"
-                                    }
-
                                     val models = withContext(Dispatchers.IO) {
-                                        RemoteWhisperClient.fetchModels(fullUrl)
+                                        RemoteWhisperClient.fetchModels(urlState.value, apiKeyState.value)
                                     }
                                     modelsList.value = models
                                     if (models.isNotEmpty() && !models.contains(modelState.value)) {
                                         modelState.value = models.first()
+                                        modelSetting.setValue(modelState.value)
                                     }
                                     connectionStatus.value = "Connected! Found ${models.size} models."
                                     Toast.makeText(context, "Connection Successful!", Toast.LENGTH_SHORT).show()
+                                } catch (e: CancellationException) {
+                                    throw e
                                 } catch (e: Exception) {
                                     e.printStackTrace()
                                     modelsList.value = emptyList()
@@ -225,6 +220,7 @@ fun RemoteWhisperConfigPage() {
                                     text = { Text(modelName) },
                                     onClick = {
                                         modelState.value = modelName
+                                        modelSetting.setValue(modelName)
                                         dropdownExpanded.value = false
                                     }
                                 )

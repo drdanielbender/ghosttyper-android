@@ -6,6 +6,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -27,6 +28,7 @@ import org.futo.voiceinput.shared.ui.MicrophoneDeviceState
 import org.futo.voiceinput.shared.ui.PartialDecodingResult
 import org.futo.voiceinput.shared.ui.RecognizeLoadingCircle
 import org.futo.voiceinput.shared.ui.RecognizeMicError
+import org.futo.voiceinput.shared.ui.RemoteTranscriptionHint
 import org.futo.voiceinput.shared.whisper.DecodingConfiguration
 import org.futo.voiceinput.shared.whisper.ModelManager
 import org.futo.voiceinput.shared.whisper.MultiModelRunConfiguration
@@ -42,7 +44,8 @@ data class RecognizerViewSettings(
 
     val useRemoteWhisper: Boolean = false,
     val remoteWhisperUrl: String = "",
-    val remoteWhisperModel: String = ""
+    val remoteWhisperModel: String = "",
+    val remoteWhisperApiKey: String = ""
 )
 
 private val VerboseAnnotations = hashMapOf(
@@ -107,6 +110,23 @@ class RecognizerView(
 
     @Composable
     fun Content() {
+        if (settings.useRemoteWhisper) {
+            Column(modifier = Modifier.fillMaxSize()) {
+                Box(
+                    modifier = Modifier.weight(1f).fillMaxWidth(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    RecognitionContent()
+                }
+                RemoteTranscriptionHint(settings.remoteWhisperUrl, settings.remoteWhisperModel)
+            }
+        } else {
+            RecognitionContent()
+        }
+    }
+
+    @Composable
+    private fun RecognitionContent() {
         when (currentViewState.value) {
             CurrentView.LoadingCircle -> {
                 Column {
@@ -258,7 +278,8 @@ class RecognizerView(
             recordingConfiguration = settings.recordingConfiguration,
             useRemoteWhisper = settings.useRemoteWhisper,
             remoteWhisperUrl = settings.remoteWhisperUrl,
-            remoteWhisperModel = settings.remoteWhisperModel
+            remoteWhisperModel = settings.remoteWhisperModel,
+            remoteWhisperApiKey = settings.remoteWhisperApiKey
         )
     )
 

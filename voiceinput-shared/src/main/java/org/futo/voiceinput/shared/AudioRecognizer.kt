@@ -23,6 +23,7 @@ import com.konovalov.vad.config.Mode
 import com.konovalov.vad.config.Model
 import com.konovalov.vad.config.SampleRate
 import com.konovalov.vad.models.VadModel
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancelAndJoin
@@ -93,7 +94,8 @@ data class AudioRecognizerSettings(
     val recordingConfiguration: RecordingSettings,
     val useRemoteWhisper: Boolean = false,
     val remoteWhisperUrl: String = "",
-    val remoteWhisperModel: String = ""
+    val remoteWhisperModel: String = "",
+    val remoteWhisperApiKey: String = ""
 )
 
 class ModelDoesNotExistException(val models: List<ModelLoader>) : Throwable()
@@ -564,13 +566,14 @@ class AudioRecognizer(
             if (settings.useRemoteWhisper) {
                 runnerCallback.updateStatus(InferenceState.Encoding)
                 val wavBytes = WavEncoder.floatArrayToWavBytes(floatArray)
-                val language = settings.decodingConfiguration.languages.firstOrNull()?.toWhisperString()
+                val language = settings.decodingConfiguration.languages.singleOrNull()?.toWhisperString()
                 withContext(Dispatchers.IO) {
                     RemoteWhisperClient.transcribe(
                         wavBytes = wavBytes,
                         serverUrl = settings.remoteWhisperUrl,
                         modelId = settings.remoteWhisperModel,
-                        language = language
+                        language = language,
+                        apiKey = settings.remoteWhisperApiKey
                     )
                 }
             } else {
@@ -584,6 +587,8 @@ class AudioRecognizer(
         } catch(e: InferenceCancelledException) {
             yield()
             return
+        } catch(e: CancellationException) {
+            throw e
         } catch(e: Exception) {
             e.printStackTrace()
             val errMsg = e.localizedMessage ?: e.message ?: "Unknown error"

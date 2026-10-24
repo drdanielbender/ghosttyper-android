@@ -1,5 +1,22 @@
 # FUTO Keyboard
 
+## Remote speech-to-text
+
+Enable remote transcription, enter your server
+URL, and use **Test Connection & Fetch Models** to select a model. Root URLs,
+`/v1` URLs, and full transcription endpoints work. The server must expose the
+compatible `/v1/models` and `/v1/audio/transcriptions` endpoints. The optional
+API key is sent as a Bearer token for model discovery and transcription; leave
+it blank for an unauthenticated server. For OpenRouter, enter
+`https://openrouter.ai/api/v1`, enter your OpenRouter key, and fetch models.
+The regional URLs `https://us.openrouter.ai/api/v1` and
+`https://eu.openrouter.ai/api/v1` also use transcription model discovery,
+keeping requests on the selected regional endpoint.
+OpenRouter model discovery lists transcription models, including models other
+than Whisper. See the [OpenRouter STT guide](https://openrouter.ai/docs/guides/overview/multimodal/stt).
+Remote transcription is off by default; enabling it
+sends recordings to the configured server. HTTP is supported for local servers.
+
 The goal is to make a good modern keyboard that stays offline and doesn't spy on you. This keyboard is a fork of [LatinIME, The Android Open-Source Keyboard](https://android.googlesource.com/platform/packages/inputmethods/LatinIME), with significant changes made to it.
 
 Check out the [FUTO Keyboard website](https://keyboard.futo.tech/) for downloads and more information.

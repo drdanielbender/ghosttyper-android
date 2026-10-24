@@ -2,6 +2,8 @@ package org.futo.voiceinput.shared.whisper
 
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import okhttp3.HttpUrl
+import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
 import okhttp3.OkHttpClient
@@ -16,7 +18,13 @@ private data class TranscriptionResponse(
 
 @Serializable
 private data class ModelItem(
-    val id: String
+    val id: String,
+    val architecture: ModelArchitecture? = null
+)
+
+@Serializable
+private data class ModelArchitecture(
+    val output_modalities: List<String> = emptyList()
 )
 
 @Serializable
@@ -32,11 +40,46 @@ object RemoteWhisperClient {
 
     private val json = Json { ignoreUnknownKeys = true }
 
+    private fun endpointUrl(serverUrl: String, endpoint: String): HttpUrl {
+        val url = serverUrl.trim().toHttpUrl()
+        val basePath = url.encodedPath.trimEnd('/')
+            .removeSuffix("/audio/transcriptions")
+            .removeSuffix("/models")
+            .removeSuffix("/v1")
+        return url.newBuilder().encodedPath("$basePath/v1/$endpoint").build()
+    }
+
+    internal fun modelDiscoveryUrl(serverUrl: String): HttpUrl {
+        val url = endpointUrl(serverUrl, "models")
+        return if (url.host in setOf("openrouter.ai", "us.openrouter.ai", "eu.openrouter.ai")) {
+            url.newBuilder().setQueryParameter("output_modalities", "transcription").build()
+        } else {
+            url
+        }
+    }
+
+    private fun Request.Builder.withApiKey(apiKey: String): Request.Builder = apply {
+        val key = apiKey.trim()
+        if (key.isNotEmpty()) {
+            require(key.all { it in '!'..'~' }) { "API key must not contain whitespace or non-ASCII characters" }
+            header("Authorization", "Bearer $key")
+        }
+    }
+
+    private fun serverError(code: Int, body: String?, apiKey: String): Exception {
+        val key = apiKey.trim()
+        val detail = body.orEmpty().let {
+            if (key.isEmpty()) it else it.replace(key, "[redacted]")
+        }
+        return Exception("Server error: $code $detail")
+    }
+
     fun transcribe(
         wavBytes: ByteArray,
         serverUrl: String,
         modelId: String,
-        language: String?
+        language: String?,
+        apiKey: String = ""
     ): String {
         val fileBody = wavBytes.toRequestBody("audio/wav".toMediaTypeOrNull())
 
@@ -46,28 +89,18 @@ object RemoteWhisperClient {
             .addFormDataPart("model", modelId)
 
         if (!language.isNullOrEmpty() && language != "auto") {
-            if (!(serverUrl.contains("api.openai.com") && language == "auto")) {
-                requestBodyBuilder.addFormDataPart("language", language)
-            }
-        }
-
-        // Normalize URL to prevent duplicate endpoint paths
-        val pathSuffix = "/v1/audio/transcriptions"
-        val targetUrl = serverUrl.trim()
-        val fullUrl = if (targetUrl.contains(pathSuffix)) {
-            targetUrl
-        } else {
-            "${targetUrl.trimEnd('/')}$pathSuffix"
+            requestBodyBuilder.addFormDataPart("language", language)
         }
 
         val request = Request.Builder()
-            .url(fullUrl)
+            .url(endpointUrl(serverUrl, "audio/transcriptions"))
+            .withApiKey(apiKey)
             .post(requestBodyBuilder.build())
             .build()
 
         client.newCall(request).execute().use { response ->
             if (!response.isSuccessful) {
-                throw Exception("Server error: ${response.code} ${response.body?.string()}")
+                throw serverError(response.code, response.body?.string(), apiKey)
             }
             val jsonString = response.body?.string() ?: throw Exception("Empty response body")
             val parsed = json.decodeFromString<TranscriptionResponse>(jsonString)
@@ -77,21 +110,25 @@ object RemoteWhisperClient {
         }
     }
 
-    fun fetchModels(fullUrl: String): List<String> {
+    fun fetchModels(serverUrl: String, apiKey: String = ""): List<String> {
         val request = Request.Builder()
-            .url(fullUrl)
+            .url(modelDiscoveryUrl(serverUrl))
+            .withApiKey(apiKey)
             .get()
             .build()
 
         client.newCall(request).execute().use { response ->
             if (!response.isSuccessful) {
-                throw Exception("HTTP ${response.code}: ${response.body?.string() ?: ""}")
+                throw serverError(response.code, response.body?.string(), apiKey)
             }
             val jsonString = response.body?.string() ?: throw Exception("Empty response body")
             val parsed = json.decodeFromString<ModelsResponse>(jsonString)
-            return parsed.data.map { it.id }.filter {
-                it.contains("whisper", ignoreCase = true) || it.contains("moonshine", ignoreCase = true)
-            }
+            return parsed.data.filter {
+                request.url.queryParameter("output_modalities") == "transcription" ||
+                    it.architecture?.output_modalities?.contains("transcription") == true ||
+                    it.id.contains("whisper", ignoreCase = true) ||
+                    it.id.contains("moonshine", ignoreCase = true)
+            }.map { it.id }
         }
     }
 }

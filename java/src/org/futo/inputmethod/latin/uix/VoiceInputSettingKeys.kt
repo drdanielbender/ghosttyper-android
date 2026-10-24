@@ -90,3 +90,8 @@ val REMOTE_WHISPER_MODEL = SettingsKey(
     key = stringPreferencesKey("remote_whisper_model"),
     default = "Whisper-Base"
 )
+
+val REMOTE_WHISPER_API_KEY = SettingsKey(
+    key = stringPreferencesKey("remote_whisper_api_key"),
+    default = ""
+)

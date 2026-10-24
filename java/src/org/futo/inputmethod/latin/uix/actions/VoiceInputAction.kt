@@ -42,6 +42,7 @@ import org.futo.inputmethod.latin.uix.USE_VAD_AUTOSTOP
 import org.futo.inputmethod.latin.uix.USE_REMOTE_WHISPER
 import org.futo.inputmethod.latin.uix.REMOTE_WHISPER_URL
 import org.futo.inputmethod.latin.uix.REMOTE_WHISPER_MODEL
+import org.futo.inputmethod.latin.uix.REMOTE_WHISPER_API_KEY
 import org.futo.inputmethod.latin.uix.VERBOSE_PROGRESS
 import org.futo.inputmethod.latin.uix.getSetting
 import org.futo.inputmethod.latin.uix.setSetting
@@ -146,6 +147,7 @@ private class VoiceInputActionWindow(
         val useRemoteWhisper = context.getSetting(USE_REMOTE_WHISPER)
         val remoteWhisperUrl = context.getSetting(REMOTE_WHISPER_URL)
         val remoteWhisperModel = context.getSetting(REMOTE_WHISPER_MODEL)
+        val remoteWhisperApiKey = context.getSetting(REMOTE_WHISPER_API_KEY)
 
         shouldPlaySounds = enableSound
 
@@ -170,7 +172,8 @@ private class VoiceInputActionWindow(
             ),
             useRemoteWhisper = useRemoteWhisper,
             remoteWhisperUrl = remoteWhisperUrl,
-            remoteWhisperModel = remoteWhisperModel
+            remoteWhisperModel = remoteWhisperModel,
+            remoteWhisperApiKey = remoteWhisperApiKey
         )
     }
 

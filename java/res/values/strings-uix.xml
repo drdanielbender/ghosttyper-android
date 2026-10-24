@@ -599,6 +599,9 @@
     <string name="voice_input_settings_use_remote_whisper">Enable remote speech-to-text</string>
     <string name="voice_input_settings_use_remote_whisper_subtitle">Send audio to an external OpenAI STT compatible endpoint instead of transcribing on device.</string>
     <string name="voice_input_settings_remote_whisper_url">Server URL</string>
+    <string name="voice_input_settings_remote_whisper_url_hint">Enter the base URL of a self-hosted OpenAI-compatible speech-to-text server, or use OpenRouter: https://openrouter.ai/api/v1.</string>
+    <string name="voice_input_settings_remote_whisper_api_key">API key (optional)</string>
+    <string name="voice_input_settings_remote_whisper_api_key_hint">Leave blank for a server that does not require authentication.</string>
     <string name="voice_input_settings_remote_whisper_model">Model ID</string>
 
     <!-- Prediction menu -->
